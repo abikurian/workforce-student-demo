@@ -2,9 +2,17 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
+
+// Serve compiled Vite frontend in production
+app.use(express.static(path.join(__dirname, 'dist')));
 
 const server = createServer(app);
 const io = new Server(server, {
@@ -86,6 +94,20 @@ io.on('connection', (socket) => {
     io.emit('updateApplications', applications); // Broadcast to EVERYONE
   });
 
+  // Worker cancels application (applied or accepted)
+  socket.on('cancelApplication', ({ gigId, workerId }) => {
+    console.log(`[Socket.io] Worker cancelled application for gig: ${gigId}`);
+    applications = applications.filter((app) => app.gigId !== gigId);
+    
+    // Reopen the gig if it was filled
+    gigs = gigs.map((gig) =>
+      gig.id === gigId ? { ...gig, status: 'open' } : gig
+    );
+
+    io.emit('updateApplications', applications); // Broadcast to EVERYONE
+    io.emit('updateGigs', gigs);
+  });
+
   // Reset Demo handler
   socket.on('resetDemo', () => {
     console.log('[Socket.io] Resetting demo state');
@@ -100,7 +122,17 @@ io.on('connection', (socket) => {
   });
 });
 
+// React Router fallback catch-all route so all client routes work on refresh
+app.get('/{*splat}', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// Fallback for any other unmatched routes
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[Server] Socket.io backend running on http://0.0.0.0:${PORT}`);
+  console.log(`[Server] Production unified server listening on port ${PORT}`);
 });

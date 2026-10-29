@@ -1,37 +1,33 @@
 # QuickStaff — Two-Sided Event Staffing Marketplace
-### Real-Time Socket.io Synchronization & Presentation-Ready UI
+### Unified Single-Server Production & Real-Time Socket.io
 
-A high-fidelity two-sided event staffing marketplace built with **Vite**, **React**, **Tailwind CSS**, and **Socket.io**.
-
----
-
-## 🚀 Running the App
-
-### 1. Start the Backend Socket.io Server (Port 3001)
-```powershell
-node server.js
-```
-The server runs on `http://0.0.0.0:3001`.
-
-### 2. Start the Frontend Vite Development Server (Port 5173)
-```powershell
-npm run dev
-```
-
-Visit `http://localhost:5173` in your browser. 
-- Open `/employer` on your desktop/laptop.
-- Open `/worker` on your smartphone (connected to the same Wi-Fi using your local IP `http://<YOUR_IP>:5173/worker`).
+A full-stack event staffing marketplace built with **React**, **Vite**, **Tailwind CSS**, and **Socket.io**. Configured for 24/7 cloud deployment as a unified single-server Node.js application.
 
 ---
 
-## ⚡ Socket Connection & Reset Logic
+## ☁️ Cloud Deployment (Render, Railway, Heroku, Fly.io, etc.)
 
-- **Dynamic Host IP Binding**:
-  ```javascript
-  const socket = io('http://' + window.location.hostname + ':3001');
-  ```
-  Works seamlessly across devices on the local network.
-- **Immediate UI Load**: No blocking `isLoading` spinner state; both portals immediately render empty states while synchronizing data in the background.
-- **Reset Demo**:
-  - Employer Dashboard contains a subtle red **`[ Reset Demo ]`** button at the bottom.
-  - Clicking emits `socket.emit('resetDemo')`, resetting `gigs` and `applications` to empty arrays across all connected client screens.
+The app is merged for single-server deployment. The Node.js backend serves both the compiled React frontend (`dist/`) and the real-time WebSocket server on a single port.
+
+### Build & Start Commands:
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm start` (or `node server.js`)
+
+The server dynamically binds to the cloud host's port (`process.env.PORT || 3001`).
+
+---
+
+## 📱 Features
+
+1. **Worker Shift Cancellation**:
+   - In the Worker App, applied or confirmed shifts feature a **`[ Cancel ]`** button.
+   - Tapping it emits `cancelApplication` to the server.
+   - The application is removed in real-time, the gig returns to `open` status, and the employer's board immediately reflects the change.
+
+2. **Dynamic WebSocket Origin**:
+   - Frontend connects via `io(window.location.origin)`.
+   - In production, it connects to the cloud server domain seamlessly without hardcoded hostnames or IPs.
+   - In local development, it proxies through Vite to port 3001.
+
+3. **Single-Port React Router SPA Support**:
+   - Integrated catch-all route in `server.js` (`app.use` / `app.get`) serves `dist/index.html` on direct refreshes of `/employer`, `/worker`, and `/`.

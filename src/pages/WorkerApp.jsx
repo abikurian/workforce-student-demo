@@ -65,6 +65,16 @@ export default function WorkerApp() {
     });
   };
 
+  const handleCancel = (gigId) => {
+    socket.emit('cancelApplication', {
+      gigId,
+      workerId: 'Student Worker',
+    });
+    if (acceptedNotice && acceptedNotice.gigId === gigId) {
+      setAcceptedNotice(null);
+    }
+  };
+
   const acceptedGig = acceptedNotice 
     ? gigs.find((g) => g.id === acceptedNotice.gigId) 
     : null;
@@ -135,7 +145,7 @@ export default function WorkerApp() {
         </span>
       </div>
 
-      {/* Main Native Feed Content (Renders immediately without blocking loading screen) */}
+      {/* Main Native Feed Content */}
       <main className="flex-1 p-4 space-y-3.5 pb-24 max-w-lg mx-auto w-full">
         {displayGigs.length === 0 ? (
           <div className="py-16 text-center text-slate-400 border border-dashed border-gray-300 rounded-2xl p-6 bg-white">
@@ -203,7 +213,7 @@ export default function WorkerApp() {
                   </div>
                 </div>
 
-                {/* Action Button */}
+                {/* Action Button & Cancel Button */}
                 <div>
                   {!isApplied ? (
                     <button
@@ -214,26 +224,44 @@ export default function WorkerApp() {
                       <span>Apply</span>
                     </button>
                   ) : !isAccepted ? (
-                    <button
-                      disabled
-                      className="w-full min-h-[46px] bg-gray-100 text-amber-600 font-semibold text-xs py-3 px-4 rounded-xl border border-amber-200 flex items-center justify-center space-x-2 cursor-not-allowed"
-                    >
-                      <Clock className="w-4 h-4 animate-spin text-amber-600" />
-                      <span>Applied</span>
-                    </button>
-                  ) : (
-                    /* Accepted: [Shift Confirmed - GPS Track Active] */
-                    <div className="space-y-1.5">
+                    /* Applied: Show Applied badge + Cancel button next to it */
+                    <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => {
-                          setSelectedGigForGps(gig);
-                          setGpsModalOpen(true);
-                        }}
-                        className="w-full min-h-[48px] bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold text-xs py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer ring-2 ring-emerald-300 animate-pulse"
+                        disabled
+                        className="flex-1 min-h-[46px] bg-gray-100 text-amber-600 font-semibold text-xs py-3 px-4 rounded-xl border border-amber-200 flex items-center justify-center space-x-2 cursor-not-allowed"
                       >
-                        <Navigation className="w-4 h-4 text-white animate-bounce" />
-                        <span>Shift Confirmed - GPS Track Active</span>
+                        <Clock className="w-4 h-4 animate-spin text-amber-600" />
+                        <span>Applied</span>
                       </button>
+                      <button
+                        onClick={() => handleCancel(gig.id)}
+                        className="min-h-[46px] px-4 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-600 font-semibold text-xs rounded-xl border border-rose-200 transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    /* Accepted: [Shift Confirmed - GPS Track Active] + Cancel button next to it */
+                    <div className="space-y-1.5">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedGigForGps(gig);
+                            setGpsModalOpen(true);
+                          }}
+                          className="flex-1 min-h-[48px] bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold text-xs py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer ring-2 ring-emerald-300 animate-pulse"
+                        >
+                          <Navigation className="w-4 h-4 text-white animate-bounce" />
+                          <span>Shift Confirmed - GPS Track Active</span>
+                        </button>
+                        <button
+                          onClick={() => handleCancel(gig.id)}
+                          className="min-h-[48px] px-4 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-600 font-semibold text-xs rounded-xl border border-rose-200 transition-colors cursor-pointer"
+                          title="Cancel Shift"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                       <p className="text-[11px] text-center text-emerald-600 font-medium">
                         Tap to view live geofence verification
                       </p>
