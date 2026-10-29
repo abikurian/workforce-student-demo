@@ -1,67 +1,90 @@
-# QuickStaff Campus — Two-Sided Event Staffing Platform
-### "Wizard of Oz" Interactive Prototype for Academic Demonstrations
+# QuickStaff — Two-Sided Event Staffing Marketplace
+### Real-Time Multi-Device Platform with Firebase Firestore
 
-A split-screen, high-fidelity interactive prototype created to demonstrate a two-sided event staffing marketplace to university professors. The app demonstrates instantaneous bidirectional state synchronization between an **Employer Web Console** (Left Panel) and a **Simulated Student Worker Mobile App** (Right Panel) without requiring a backend.
-
----
-
-## 🌟 Key Features
-
-### 1. Global State Management (React Top-Level Architecture)
-- Both views are synchronized instantaneously in React state inside [`src/App.jsx`](file:///d:/Project/workforce-student-demo/src/App.jsx).
-- **`gigs`**: Initialized with default `{ id: 1, title: 'Catering Staff', wage: '₹500/shift', status: 'open' }`.
-- **`applications`**: Tracks candidate shift applications `{ gigId, status: 'applied' | 'accepted' }`.
-
-### 2. Left Panel: Employer Web Console (Desktop Admin Dashboard)
-- **Palette**: Modern Slate & Indigo theme.
-- **KPI Summary**: Live metric cards showing Total Gigs, Action Needed (Pending Applicants), and Filled Shifts.
-- **Post a Gig Form**: 
-  - Dynamic input for Job Title and Wage (₹).
-  - 1-click demo template presets (e.g. *Stage Setup Crew ₹800*, *Event Photography ₹1,500*, *Registration Desk ₹600*).
-  - Submit button broadcasts new gigs directly into the worker mobile feed.
-- **Active Gigs Table**:
-  - Lists all posted gigs with status badges (`Open` / `Filled`).
-  - Displays animated notification badges when a worker applies.
-  - Green **`[Accept Applicant]`** button instantly dispatches and locks in the candidate.
-
-### 3. Right Panel: Worker Mobile App Simulator
-- Rendered in a fixed 380px container styled with rounded corners (`rounded-[48px]`), physical side buttons, realistic notch/dynamic island, and status bar (5G, battery, clock).
-- **Live Feed**: Smooth CSS slide-in transitions (`animate-slide-in`) whenever new jobs are posted.
-- **Interactive Shift Actions**:
-  - Unapplied gigs display a blue **`[Apply Now]`** button.
-  - Clicking changes the button into a disabled **`[Applied - Awaiting Employer Acceptance]`** state.
-  - When the employer accepts the applicant on the left, the card immediately updates to a glowing green **`[Shift Confirmed - GPS Check-in Ready]`** button.
-- **Simulated GPS Geofence Check-in**:
-  - Clicking the confirmed shift button launches a simulated location check-in modal demonstrating campus auditorium geofence verification and attendance logging.
-
-### 4. Demo Polish
-- Prominent Indian Rupee (**₹**) typography throughout.
-- Real-time toast activity ticker displaying live event updates.
-- 1-Click Presentation Run button for smooth classroom presentations.
-- Reset Demo button to instantly revert to the initial state.
+A connected two-sided event staffing marketplace built with **Vite**, **React**, **Tailwind CSS**, **react-router-dom**, and **Firebase Firestore**. Synchronizes data in real-time across two distinct portals running on different devices (e.g. desktop/laptop for Employer and smartphone for Worker).
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Portals & Routing
 
-### Prerequisites
-- Node.js (v18+ recommended)
-- npm or pnpm
+| Route | View | Description |
+|---|---|---|
+| `/` | **Landing Page** | Two massive action buttons: `[ENTER AS EMPLOYER]` and `[ENTER AS WORKER]`. |
+| `/employer` | **Employer Web Console** | Desktop-optimized admin dashboard layout with real-time `onSnapshot` listeners to post gigs and accept student workers. |
+| `/worker` | **Worker Mobile App** | Mobile-constrained layout (`max-width: 400px`, centered) simulating a native smartphone app with bottom navigation, live job feed, and real-time GPS shift confirmation. |
 
-### Run Locally
+---
+
+## 🗄️ Firestore Schema (`src/firebase.js`)
+
+### 1. `gigs` Collection
+```typescript
+{
+  id: string,
+  title: string,       // e.g. "Catering Staff", "Stage Setup"
+  wage: string,        // e.g. "₹500/hr"
+  date: string,        // e.g. "Tonight • 6:00 PM"
+  status: 'open' | 'filled',
+  createdAt: timestamp
+}
+```
+
+### 2. `applications` Collection
+```typescript
+{
+  id: string,
+  gigId: string,
+  workerName: string,  // Default: "Student Worker"
+  status: 'pending' | 'accepted',
+  createdAt: timestamp
+}
+```
+
+---
+
+## ⚡ Real-Time Synchronized Interaction Flow
+
+1. **Employer Posts a Gig** (`/employer`):
+   - Enter Job Title, Shift Wage in ₹, and Date/Time (or select a quick preset).
+   - Submitting writes a new document to the `gigs` collection.
+   - The gig instantly appears on connected worker mobile screens.
+
+2. **Worker Applies** (`/worker`):
+   - Worker sees the new gig card and clicks **`[Apply]`**.
+   - Creates a document in the `applications` collection (`status: 'pending'`).
+   - The button disables and changes to **`"Applied"`**.
+   - The Employer console immediately updates the gig card to display **`Applicant Ready: Student Worker`** alongside an **`[Accept]`** button.
+
+3. **Employer Accepts Applicant** (`/employer`):
+   - Clicking **`[Accept]`** updates the application document status to `'accepted'` and marks the gig as `'filled'`.
+   - On the worker's smartphone, a green celebration modal instantly pops up: **"Shift Confirmed! 🎉"**.
+   - The button turns into a glowing green **`[Shift Confirmed - GPS Track Active]`** button with attendance geofence tracking.
+
+---
+
+## 🔑 Firebase Configuration
+
+Create or update `.env` in the root folder with your Firebase web app config:
+
+```env
+VITE_FIREBASE_API_KEY=your_api_key_here
+VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+```
+
+> **Note**: If `.env` credentials are empty or not yet provided, the app automatically enables a local cross-tab / cross-window `BroadcastChannel` real-time sync mechanism with identical method signatures. You can test cross-window synchronization right away!
+
+---
+
+## 🛠️ Running Locally
+
 ```bash
-# Install dependencies (if not already installed)
-npm install
-
 # Start Vite development server
 npm run dev
-```
 
-Then open the local URL (typically `http://localhost:5173`) in your browser to view the split-screen prototype.
-
-### Build for Production
-```bash
+# Build for production
 npm run build
 ```
-The optimized production bundle will be generated in `/dist`.
-
