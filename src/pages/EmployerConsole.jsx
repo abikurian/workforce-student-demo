@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { 
-  Building2, 
   PlusCircle, 
   Briefcase, 
   Users, 
   CheckCircle2, 
   Clock, 
-  ArrowLeft, 
   Send, 
-  Sparkles, 
   AlertCircle,
   ShieldCheck,
   Calendar
@@ -81,56 +77,11 @@ export default function EmployerConsole() {
     setTimeout(() => setActionNotice(null), 3000);
   };
 
-  const quickPresets = [
-    { title: 'Catering Staff', wage: '₹500/hr', date: 'Tonight • 6:00 PM' },
-    { title: 'Stage Setup', wage: '₹750/hr', date: 'Tomorrow • 10:00 AM' },
-    { title: 'Photography', wage: '₹1,200/hr', date: 'Saturday • 3:00 PM' },
-    { title: 'Guest Registration', wage: '₹400/hr', date: 'Friday • 9:00 AM' },
-  ];
-
   const pendingAppsCount = applications.filter((a) => a.status === 'pending').length;
   const acceptedAppsCount = applications.filter((a) => a.status === 'accepted').length;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-['Inter',sans-serif]">
-      {/* Top Navbar */}
-      <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Link
-              to="/"
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center space-x-1.5 text-xs font-medium"
-              title="Return to Portal Select"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Landing</span>
-            </Link>
-
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-white tracking-tight">Employer Web Console</h1>
-                <p className="text-xs text-slate-400">Campus Event Coordination & Student Dispatch</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <Link
-              to="/worker"
-              target="_blank"
-              rel="noreferrer"
-              className="hidden md:flex items-center space-x-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg font-semibold transition-all"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Open Worker Portal in New Tab ↗</span>
-            </Link>
-          </div>
-        </div>
-      </header>
-
       {/* Action Notification Banner */}
       {actionNotice && (
         <div className="bg-indigo-600 text-white text-xs px-4 py-2 text-center font-medium shadow-md animate-fade-in">
@@ -138,7 +89,7 @@ export default function EmployerConsole() {
         </div>
       )}
 
-      {/* Main Container */}
+      {/* Main Container - starts directly with metric cards */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
         
         {/* KPI Metrics */}
@@ -177,38 +128,13 @@ export default function EmployerConsole() {
         {/* Layout Grid: Form (Left) & Active Gigs Board (Right) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Left Column: Post Gig Form */}
+          {/* Left Column: Post Gig Form (decluttered with only core inputs) */}
           <div className="lg:col-span-5 bg-slate-900/90 rounded-2xl border border-indigo-500/20 p-6 shadow-xl">
-            <div className="flex items-center space-x-2 mb-4">
+            <div className="flex items-center space-x-2 mb-5">
               <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
                 <PlusCircle className="w-5 h-5" />
               </div>
               <h2 className="text-base font-bold text-white">Post a New Gig</h2>
-            </div>
-
-            {/* Quick Autofill Presets */}
-            <div className="mb-4">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2 flex items-center space-x-1">
-                <Sparkles className="w-3 h-3 text-indigo-400" />
-                <span>Quick Presets:</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {quickPresets.map((preset) => (
-                  <button
-                    key={preset.title}
-                    type="button"
-                    onClick={() => {
-                      setTitle(preset.title);
-                      setWage(preset.wage);
-                      setDate(preset.date);
-                      setFormError('');
-                    }}
-                    className="text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600/30 text-slate-200 border border-slate-700 hover:border-indigo-500/50 transition-all cursor-pointer"
-                  >
-                    <span>{preset.title}</span> • <span className="font-bold text-emerald-400">{preset.wage}</span>
-                  </button>
-                ))}
-              </div>
             </div>
 
             <form onSubmit={handlePostGig} className="space-y-4">
