@@ -4,18 +4,17 @@ import {
   Briefcase, 
   Users, 
   CheckCircle2, 
-  Clock, 
   Send, 
-  AlertCircle,
-  ShieldCheck,
-  Calendar
+  AlertCircle, 
+  ShieldCheck, 
+  Calendar,
+  RotateCcw
 } from 'lucide-react';
 import { socket } from '../socket';
 
 export default function EmployerConsole() {
   const [gigs, setGigs] = useState([]);
   const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -28,7 +27,6 @@ export default function EmployerConsole() {
   useEffect(() => {
     socket.on('updateGigs', (updatedGigs) => {
       setGigs(updatedGigs);
-      setLoading(false);
     });
 
     socket.on('updateApplications', (updatedApps) => {
@@ -74,6 +72,12 @@ export default function EmployerConsole() {
     });
 
     setActionNotice(`Accepted ${applicantName}! Shift confirmed on worker's device.`);
+    setTimeout(() => setActionNotice(null), 3000);
+  };
+
+  const handleResetDemo = () => {
+    socket.emit('resetDemo');
+    setActionNotice('Demo reset: all active gigs and applications cleared.');
     setTimeout(() => setActionNotice(null), 3000);
   };
 
@@ -128,7 +132,7 @@ export default function EmployerConsole() {
         {/* Layout Grid: Form (Left) & Active Gigs Board (Right) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* Left Column: Post Gig Form (decluttered with only core inputs) */}
+          {/* Left Column: Post Gig Form */}
           <div className="lg:col-span-5 bg-slate-900/90 rounded-2xl border border-indigo-500/20 p-6 shadow-xl">
             <div className="flex items-center space-x-2 mb-5">
               <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
@@ -201,19 +205,14 @@ export default function EmployerConsole() {
             </form>
           </div>
 
-          {/* Right Column: Active Gigs & Applicants Board */}
+          {/* Right Column: Active Gigs & Applicants Board (loads immediately without blocking spinner) */}
           <div className="lg:col-span-7 bg-slate-900/90 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-4">
             <div className="flex items-center space-x-2 pb-3 border-b border-slate-800">
               <Briefcase className="w-5 h-5 text-indigo-400" />
               <h2 className="text-base font-bold text-white">Active Gigs & Applicants Board</h2>
             </div>
 
-            {loading ? (
-              <div className="py-12 text-center text-slate-500">
-                <Clock className="w-8 h-8 animate-spin mx-auto mb-2 text-indigo-400" />
-                <p className="text-sm">Loading active gigs...</p>
-              </div>
-            ) : gigs.length === 0 ? (
+            {gigs.length === 0 ? (
               <div className="py-12 text-center text-slate-500 border border-dashed border-slate-800 rounded-xl">
                 <Briefcase className="w-8 h-8 mx-auto mb-2 text-slate-600" />
                 <p className="text-sm font-semibold text-slate-300">No gigs posted yet</p>
@@ -306,6 +305,17 @@ export default function EmployerConsole() {
         </div>
 
       </main>
+
+      {/* Subtle Reset Demo button at the very bottom */}
+      <footer className="py-6 px-4 flex justify-center border-t border-slate-900 bg-slate-950">
+        <button
+          onClick={handleResetDemo}
+          className="text-xs text-rose-400/80 hover:text-rose-300 bg-rose-950/30 hover:bg-rose-950/60 border border-rose-900/40 hover:border-rose-700/60 px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-1.5 cursor-pointer shadow-xs"
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+          <span>Reset Demo</span>
+        </button>
+      </footer>
     </div>
   );
 }

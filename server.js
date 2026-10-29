@@ -55,7 +55,6 @@ io.on('connection', (socket) => {
   // When worker applies to a gig
   socket.on('applyGig', ({ gigId, workerName }) => {
     console.log(`[Socket.io] Worker applied to gig ${gigId}: ${workerName}`);
-    // Prevent duplicate applications
     const existing = applications.find((a) => a.gigId === gigId);
     if (!existing) {
       const appObj = {
@@ -87,13 +86,21 @@ io.on('connection', (socket) => {
     io.emit('updateApplications', applications); // Broadcast to EVERYONE
   });
 
+  // Reset Demo handler
+  socket.on('resetDemo', () => {
+    console.log('[Socket.io] Resetting demo state');
+    gigs = [];
+    applications = [];
+    io.emit('updateGigs', gigs);
+    io.emit('updateApplications', applications);
+  });
+
   socket.on('disconnect', () => {
     console.log(`[Socket.io] Client disconnected: ${socket.id}`);
   });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[Server] Socket.io backend running on http://0.0.0.0:${PORT}`);
 });
-

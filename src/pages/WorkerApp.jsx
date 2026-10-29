@@ -19,7 +19,6 @@ import { socket } from '../socket';
 export default function WorkerApp() {
   const [gigs, setGigs] = useState([]);
   const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   // Mobile Bottom Tab State: 'feed' | 'shifts' | 'profile'
   const [activeTab, setActiveTab] = useState('feed');
@@ -36,7 +35,6 @@ export default function WorkerApp() {
   useEffect(() => {
     socket.on('updateGigs', (updatedGigs) => {
       setGigs(updatedGigs);
-      setLoading(false);
     });
 
     socket.on('updateApplications', (updatedApps) => {
@@ -137,14 +135,9 @@ export default function WorkerApp() {
         </span>
       </div>
 
-      {/* Main Native Feed Content */}
+      {/* Main Native Feed Content (Renders immediately without blocking loading screen) */}
       <main className="flex-1 p-4 space-y-3.5 pb-24 max-w-lg mx-auto w-full">
-        {loading ? (
-          <div className="py-20 text-center text-slate-400">
-            <Clock className="w-8 h-8 animate-spin mx-auto mb-2 text-indigo-500" />
-            <p className="text-xs font-medium">Connecting to live shifts...</p>
-          </div>
-        ) : displayGigs.length === 0 ? (
+        {displayGigs.length === 0 ? (
           <div className="py-16 text-center text-slate-400 border border-dashed border-gray-300 rounded-2xl p-6 bg-white">
             <Briefcase className="w-8 h-8 mx-auto mb-2 text-slate-400" />
             <p className="text-sm font-semibold text-slate-700">
@@ -210,7 +203,7 @@ export default function WorkerApp() {
                   </div>
                 </div>
 
-                {/* Action Button (Large tap target min 46px) */}
+                {/* Action Button */}
                 <div>
                   {!isApplied ? (
                     <button
