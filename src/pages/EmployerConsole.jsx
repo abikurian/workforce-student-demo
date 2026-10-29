@@ -22,25 +22,31 @@ export default function EmployerConsole() {
   const [date, setDate] = useState('');
   const [formError, setFormError] = useState('');
   const [actionNotice, setActionNotice] = useState(null);
+  const [isPosting, setIsPosting] = useState(false);
 
-  // Socket.io Real-Time Synchronization
+  // Socket.io Real-Time Synchronization with strict listener cleanup
   useEffect(() => {
-    socket.on('updateGigs', (updatedGigs) => {
+    const handleUpdateGigs = (updatedGigs) => {
       setGigs(updatedGigs);
-    });
+    };
 
-    socket.on('updateApplications', (updatedApps) => {
+    const handleUpdateApplications = (updatedApps) => {
       setApplications(updatedApps);
-    });
+    };
+
+    socket.on('updateGigs', handleUpdateGigs);
+    socket.on('updateApplications', handleUpdateApplications);
 
     return () => {
-      socket.off('updateGigs');
-      socket.off('updateApplications');
+      socket.off('updateGigs', handleUpdateGigs);
+      socket.off('updateApplications', handleUpdateApplications);
     };
   }, []);
 
   const handlePostGig = (e) => {
     e.preventDefault();
+    if (isPosting) return;
+
     if (!title.trim()) {
       setFormError('Please enter a job title (e.g. Catering, Stage Setup).');
       return;
@@ -50,19 +56,29 @@ export default function EmployerConsole() {
       return;
     }
 
+    setIsPosting(true);
     setFormError('');
 
-    socket.emit('postGig', {
+    // Generate unique ID to prevent duplicate processing on server
+    const newGigData = {
+      id: `gig-${Date.now()}`,
       title: title.trim(),
       wage: wage.trim(),
       date: date.trim() || 'Today • Flexible',
-    });
+    };
+
+    // Emit to server - rely exclusively on server broadcast for UI update
+    socket.emit('postGig', newGigData);
 
     setTitle('');
     setWage('');
     setDate('');
     setActionNotice('Shift broadcasted live! Workers can now view and apply.');
-    setTimeout(() => setActionNotice(null), 3000);
+
+    setTimeout(() => {
+      setActionNotice(null);
+      setIsPosting(false);
+    }, 800);
   };
 
   const handleAcceptApplicant = (applicationId, gigId, applicantName) => {
@@ -93,7 +109,7 @@ export default function EmployerConsole() {
         </div>
       )}
 
-      {/* Main Container - starts directly with metric cards */}
+      {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
         
         {/* KPI Metrics */}
@@ -197,15 +213,16 @@ export default function EmployerConsole() {
 
               <button
                 type="submit"
-                className="w-full min-h-[48px] bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                disabled={isPosting}
+                className="w-full min-h-[48px] bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-60 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
               >
                 <Send className="w-4 h-4" />
-                <span>Post Gig</span>
+                <span>{isPosting ? 'Posting Gig...' : 'Post Gig'}</span>
               </button>
             </form>
           </div>
 
-          {/* Right Column: Active Gigs & Applicants Board (loads immediately without blocking spinner) */}
+          {/* Right Column: Active Gigs & Applicants Board */}
           <div className="lg:col-span-7 bg-slate-900/90 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-4">
             <div className="flex items-center space-x-2 pb-3 border-b border-slate-800">
               <Briefcase className="w-5 h-5 text-indigo-400" />
@@ -306,7 +323,7 @@ export default function EmployerConsole() {
 
       </main>
 
-      {/* Subtle Reset Demo button at the very bottom */}
+      {/* Subtle Reset Demo button at the bottom */}
       <footer className="py-6 px-4 flex justify-center border-t border-slate-900 bg-slate-950">
         <button
           onClick={handleResetDemo}

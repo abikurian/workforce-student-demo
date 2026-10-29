@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Briefcase, 
@@ -25,38 +25,41 @@ export default function WorkerApp() {
 
   // Green accepted notification popup state
   const [acceptedNotice, setAcceptedNotice] = useState(null);
-  const [notifiedAppIds, setNotifiedAppIds] = useState(new Set());
+  const notifiedAppIdsRef = useRef(new Set());
 
   // GPS Modal State
   const [gpsModalOpen, setGpsModalOpen] = useState(false);
   const [selectedGigForGps, setSelectedGigForGps] = useState(null);
 
-  // Socket.io Real-Time Synchronization Listener
+  // Socket.io Real-Time Synchronization Listener with strict cleanup
   useEffect(() => {
-    socket.on('updateGigs', (updatedGigs) => {
+    const handleUpdateGigs = (updatedGigs) => {
       setGigs(updatedGigs);
-    });
+    };
 
-    socket.on('updateApplications', (updatedApps) => {
+    const handleUpdateApplications = (updatedApps) => {
       setApplications(updatedApps);
 
       // Check if any application just transitioned to 'accepted'
       updatedApps.forEach((app) => {
-        if (app.status === 'accepted' && !notifiedAppIds.has(app.id)) {
-          setNotifiedAppIds((prev) => new Set(prev).add(app.id));
+        if (app.status === 'accepted' && !notifiedAppIdsRef.current.has(app.id)) {
+          notifiedAppIdsRef.current.add(app.id);
           setAcceptedNotice({
             appId: app.id,
             gigId: app.gigId,
           });
         }
       });
-    });
+    };
+
+    socket.on('updateGigs', handleUpdateGigs);
+    socket.on('updateApplications', handleUpdateApplications);
 
     return () => {
-      socket.off('updateGigs');
-      socket.off('updateApplications');
+      socket.off('updateGigs', handleUpdateGigs);
+      socket.off('updateApplications', handleUpdateApplications);
     };
-  }, [notifiedAppIds]);
+  }, []);
 
   const handleApply = (gigId) => {
     socket.emit('applyGig', {

@@ -45,10 +45,16 @@ io.on('connection', (socket) => {
 
   // When employer posts a new gig
   socket.on('postGig', (newGig) => {
+    // Prevent duplicate processing if ID already exists
+    if (newGig.id && gigs.some((g) => g.id === newGig.id)) {
+      console.log('[Socket.io] Duplicate postGig ignored:', newGig.id);
+      return;
+    }
+
     console.log('[Socket.io] New gig posted:', newGig.title);
     const formattedWage = newGig.wage && newGig.wage.startsWith('₹') ? newGig.wage : `₹${newGig.wage}`;
     const gigObj = {
-      id: newGig.id || `gig-${Date.now()}`,
+      id: newGig.id || `gig-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       title: newGig.title,
       wage: formattedWage,
       date: newGig.date || 'Flexible',
