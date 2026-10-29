@@ -14,18 +14,10 @@ import {
   Sparkles, 
   ArrowLeft, 
   User, 
-  Check, 
   X,
-  Compass,
-  AlertCircle
+  Compass
 } from 'lucide-react';
-import { 
-  subscribeToGigs, 
-  subscribeToApplications, 
-  createApplication,
-  isFirebaseConfigured 
-} from '../firebase';
-import FirebaseStatusBanner from '../components/FirebaseStatusBanner';
+import { socket } from '../socket';
 
 export default function WorkerApp() {
   const [gigs, setGigs] = useState([]);
@@ -43,21 +35,20 @@ export default function WorkerApp() {
   const [gpsModalOpen, setGpsModalOpen] = useState(false);
   const [selectedGigForGps, setSelectedGigForGps] = useState(null);
 
-  // Real-time onSnapshot listeners
+  // Socket.io Real-Time Synchronization Listener
   useEffect(() => {
-    const unsubGigs = subscribeToGigs((data) => {
-      setGigs(data);
+    socket.on('updateGigs', (updatedGigs) => {
+      setGigs(updatedGigs);
       setLoading(false);
     });
 
-    const unsubApps = subscribeToApplications((data) => {
-      setApplications(data);
+    socket.on('updateApplications', (updatedApps) => {
+      setApplications(updatedApps);
 
       // Check if any application just transitioned to 'accepted'
-      data.forEach((app) => {
+      updatedApps.forEach((app) => {
         if (app.status === 'accepted' && !notifiedAppIds.has(app.id)) {
           setNotifiedAppIds((prev) => new Set(prev).add(app.id));
-          // Trigger the green celebration notification
           setAcceptedNotice({
             appId: app.id,
             gigId: app.gigId,
@@ -67,28 +58,22 @@ export default function WorkerApp() {
     });
 
     return () => {
-      if (typeof unsubGigs === 'function') unsubGigs();
-      if (typeof unsubApps === 'function') unsubApps();
+      socket.off('updateGigs');
+      socket.off('updateApplications');
     };
   }, [notifiedAppIds]);
 
-  const handleApply = async (gigId) => {
-    try {
-      await createApplication({
-        gigId,
-        workerName: 'Student Worker',
-      });
-    } catch (err) {
-      console.error('Failed to submit application:', err);
-    }
+  const handleApply = (gigId) => {
+    socket.emit('applyGig', {
+      gigId,
+      workerName: 'Student Worker',
+    });
   };
 
-  // Find accepted gig for the popup notice if active
   const acceptedGig = acceptedNotice 
     ? gigs.find((g) => g.id === acceptedNotice.gigId) 
     : null;
 
-  // Filter for 'My Shifts' tab
   const myAppliedGigIds = applications.map((a) => a.gigId);
   const myGigs = gigs.filter((g) => myAppliedGigIds.includes(g.id));
 
@@ -97,8 +82,6 @@ export default function WorkerApp() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-['Inter',sans-serif]">
-      <FirebaseStatusBanner />
-
       {/* Main Centered Smartphone Container (max-width: 400px) */}
       <div className="flex-1 w-full flex justify-center items-start sm:py-6">
         <div className="w-full max-w-[400px] min-h-screen sm:min-h-[820px] bg-slate-900 sm:rounded-[44px] sm:border-[8px] sm:border-slate-800 shadow-2xl flex flex-col relative overflow-hidden">
@@ -138,10 +121,6 @@ export default function WorkerApp() {
                   <span>Active & Verified</span>
                 </div>
               </div>
-            </div>
-
-            <div className="text-[10px] bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-semibold">
-              Live Firestore
             </div>
           </header>
 
@@ -199,7 +178,6 @@ export default function WorkerApp() {
               </div>
             ) : (
               displayGigs.map((gig) => {
-                // Find user's application for this gig
                 const userApp = applications.find((a) => a.gigId === gig.id);
                 const isApplied = Boolean(userApp);
                 const isAccepted = userApp && userApp.status === 'accepted';
@@ -295,7 +273,7 @@ export default function WorkerApp() {
             )}
           </main>
 
-          {/* Mobile Bottom Navigation Tabs (Large Tap Targets) */}
+          {/* Mobile Bottom Navigation Tabs */}
           <nav className="absolute bottom-0 inset-x-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-6 py-2 flex items-center justify-between z-30">
             <button
               onClick={() => setActiveTab('feed')}
@@ -388,4 +366,3 @@ export default function WorkerApp() {
     </div>
   );
 }
-

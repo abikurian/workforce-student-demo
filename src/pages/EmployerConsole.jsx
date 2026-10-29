@@ -11,19 +11,10 @@ import {
   Send, 
   Sparkles, 
   AlertCircle,
-  IndianRupee,
   ShieldCheck,
-  Calendar,
-  Layers
+  Calendar
 } from 'lucide-react';
-import { 
-  subscribeToGigs, 
-  subscribeToApplications, 
-  createGig, 
-  acceptApplication,
-  isFirebaseConfigured 
-} from '../firebase';
-import FirebaseStatusBanner from '../components/FirebaseStatusBanner';
+import { socket } from '../socket';
 
 export default function EmployerConsole() {
   const [gigs, setGigs] = useState([]);
@@ -34,28 +25,27 @@ export default function EmployerConsole() {
   const [title, setTitle] = useState('');
   const [wage, setWage] = useState('');
   const [date, setDate] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [actionNotice, setActionNotice] = useState(null);
 
-  // Real-time onSnapshot Listeners
+  // Socket.io Real-Time Synchronization
   useEffect(() => {
-    const unsubGigs = subscribeToGigs((data) => {
-      setGigs(data);
+    socket.on('updateGigs', (updatedGigs) => {
+      setGigs(updatedGigs);
       setLoading(false);
     });
 
-    const unsubApps = subscribeToApplications((data) => {
-      setApplications(data);
+    socket.on('updateApplications', (updatedApps) => {
+      setApplications(updatedApps);
     });
 
     return () => {
-      if (typeof unsubGigs === 'function') unsubGigs();
-      if (typeof unsubApps === 'function') unsubApps();
+      socket.off('updateGigs');
+      socket.off('updateApplications');
     };
   }, []);
 
-  const handlePostGig = async (e) => {
+  const handlePostGig = (e) => {
     e.preventDefault();
     if (!title.trim()) {
       setFormError('Please enter a job title (e.g. Catering, Stage Setup).');
@@ -66,37 +56,29 @@ export default function EmployerConsole() {
       return;
     }
 
-    setSubmitting(true);
     setFormError('');
 
-    try {
-      await createGig({
-        title: title.trim(),
-        wage: wage.trim(),
-        date: date.trim() || 'Today • Flexible',
-      });
+    socket.emit('postGig', {
+      title: title.trim(),
+      wage: wage.trim(),
+      date: date.trim() || 'Today • Flexible',
+    });
 
-      setTitle('');
-      setWage('');
-      setDate('');
-      setActionNotice('Shift broadcasted live! Workers can now view and apply.');
-      setTimeout(() => setActionNotice(null), 4000);
-    } catch (err) {
-      console.error('Error posting gig:', err);
-      setFormError('Failed to post gig. Check console or Firebase rules.');
-    } finally {
-      setSubmitting(false);
-    }
+    setTitle('');
+    setWage('');
+    setDate('');
+    setActionNotice('Shift broadcasted live! Workers can now view and apply.');
+    setTimeout(() => setActionNotice(null), 3000);
   };
 
-  const handleAcceptApplicant = async (applicationId, gigId, applicantName) => {
-    try {
-      await acceptApplication(applicationId, gigId);
-      setActionNotice(`Accepted ${applicantName}! Shift confirmed on worker's device.`);
-      setTimeout(() => setActionNotice(null), 4000);
-    } catch (err) {
-      console.error('Error accepting applicant:', err);
-    }
+  const handleAcceptApplicant = (applicationId, gigId, applicantName) => {
+    socket.emit('acceptApplicant', {
+      applicationId,
+      gigId,
+    });
+
+    setActionNotice(`Accepted ${applicantName}! Shift confirmed on worker's device.`);
+    setTimeout(() => setActionNotice(null), 3000);
   };
 
   const quickPresets = [
@@ -111,8 +93,6 @@ export default function EmployerConsole() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-['Inter',sans-serif]">
-      <FirebaseStatusBanner />
-
       {/* Top Navbar */}
       <header className="bg-slate-900 border-b border-slate-800 px-6 py-4 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -131,13 +111,8 @@ export default function EmployerConsole() {
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
-                <div className="flex items-center space-x-2">
-                  <h1 className="text-lg font-bold text-white tracking-tight">Employer Web Console</h1>
-                  <span className="bg-indigo-500/10 text-indigo-400 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-indigo-500/20">
-                    Desktop Layout
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400">Live Firestore Real-Time Event Staff Dispatch</p>
+                <h1 className="text-lg font-bold text-white tracking-tight">Employer Web Console</h1>
+                <p className="text-xs text-slate-400">Campus Event Coordination & Student Dispatch</p>
               </div>
             </div>
           </div>
@@ -170,11 +145,10 @@ export default function EmployerConsole() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 shadow-md">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Total Gigs in Firestore</span>
+              <span className="text-xs font-bold uppercase tracking-wider">TOTAL ACTIVE GIGS</span>
               <Briefcase className="w-4 h-4 text-indigo-400" />
             </div>
             <div className="text-3xl font-extrabold text-white">{gigs.length}</div>
-            <div className="text-xs text-slate-400 mt-1">Real-time sync on 'gigs' collection</div>
           </div>
 
           <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 shadow-md relative overflow-hidden">
@@ -185,20 +159,18 @@ export default function EmployerConsole() {
               </span>
             )}
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Awaiting Acceptance</span>
+              <span className="text-xs font-bold uppercase tracking-wider">AWAITING ACCEPTANCE</span>
               <Users className="w-4 h-4 text-amber-400" />
             </div>
             <div className="text-3xl font-extrabold text-amber-300">{pendingAppsCount}</div>
-            <div className="text-xs text-amber-300/80 mt-1">Pending student applications</div>
           </div>
 
           <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 shadow-md">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider">Confirmed Shifts</span>
+              <span className="text-xs font-bold uppercase tracking-wider">CONFIRMED SHIFTS</span>
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="text-3xl font-extrabold text-emerald-400">{acceptedAppsCount}</div>
-            <div className="text-xs text-emerald-400/80 mt-1">Locked with GPS track active</div>
           </div>
         </div>
 
@@ -207,21 +179,12 @@ export default function EmployerConsole() {
           
           {/* Left Column: Post Gig Form */}
           <div className="lg:col-span-5 bg-slate-900/90 rounded-2xl border border-indigo-500/20 p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
-                  <PlusCircle className="w-5 h-5" />
-                </div>
-                <h2 className="text-base font-bold text-white">Post a New Gig</h2>
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
+                <PlusCircle className="w-5 h-5" />
               </div>
-              <span className="text-xs text-indigo-300 font-semibold bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
-                Firestore Write
-              </span>
+              <h2 className="text-base font-bold text-white">Post a New Gig</h2>
             </div>
-
-            <p className="text-xs text-slate-400 mb-4">
-              Submitting adds a document to <code className="text-indigo-300 font-mono">gigs</code> collection in Firestore and instantly broadcasts to all connected worker devices.
-            </p>
 
             {/* Quick Autofill Presets */}
             <div className="mb-4">
@@ -304,44 +267,37 @@ export default function EmployerConsole() {
 
               <button
                 type="submit"
-                disabled={submitting}
-                className="w-full min-h-[48px] bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                className="w-full min-h-[48px] bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center space-x-2 cursor-pointer"
               >
                 <Send className="w-4 h-4" />
-                <span>{submitting ? 'Publishing to Firestore...' : 'Publish Gig to Firestore'}</span>
+                <span>Post Gig</span>
               </button>
             </form>
           </div>
 
           {/* Right Column: Active Gigs & Applicants Board */}
           <div className="lg:col-span-7 bg-slate-900/90 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center space-x-2">
-                <Briefcase className="w-5 h-5 text-indigo-400" />
-                <h2 className="text-base font-bold text-white">Active Gigs & Applicants Board</h2>
-              </div>
-              <span className="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full font-medium">
-                Live onSnapshot
-              </span>
+            <div className="flex items-center space-x-2 pb-3 border-b border-slate-800">
+              <Briefcase className="w-5 h-5 text-indigo-400" />
+              <h2 className="text-base font-bold text-white">Active Gigs & Applicants Board</h2>
             </div>
 
             {loading ? (
               <div className="py-12 text-center text-slate-500">
                 <Clock className="w-8 h-8 animate-spin mx-auto mb-2 text-indigo-400" />
-                <p className="text-sm">Connecting to Firestore stream...</p>
+                <p className="text-sm">Loading active gigs...</p>
               </div>
             ) : gigs.length === 0 ? (
               <div className="py-12 text-center text-slate-500 border border-dashed border-slate-800 rounded-xl">
                 <Briefcase className="w-8 h-8 mx-auto mb-2 text-slate-600" />
                 <p className="text-sm font-semibold text-slate-300">No gigs posted yet</p>
                 <p className="text-xs text-slate-500 mt-1">
-                  Use the form on the left to write your first gig into Firestore.
+                  Use the form on the left to post a new gig.
                 </p>
               </div>
             ) : (
               <div className="space-y-3.5">
                 {gigs.map((gig) => {
-                  // Find applications corresponding to this gig
                   const gigApps = applications.filter((a) => a.gigId === gig.id);
                   const pendingApp = gigApps.find((a) => a.status === 'pending');
                   const acceptedApp = gigApps.find((a) => a.status === 'accepted');
@@ -427,4 +383,3 @@ export default function EmployerConsole() {
     </div>
   );
 }
-
