@@ -30,4 +30,5 @@ The server dynamically binds to the cloud host's port (`process.env.PORT || 3001
    - In local development, it proxies through Vite to port 3001.
 
 3. **Single-Port React Router SPA Support**:
-   - Integrated catch-all route in `server.js` (`app.use` / `app.get`) serves `dist/index.html` on direct refreshes of `/employer`, `/worker`, and `/`.
+   - Integrated catch-all route in `server.js` (`app.use` / `app.get`) serves `dist/index.html` on direct refreshes of `/employer`, `/worker`, 
+https://workforce-student-demo.onrender.com/
